@@ -7,12 +7,14 @@ to operate Herdr's panes.
 
 ## Install
 
-Validate, then install the local package:
+Clone the repository, then validate and install the local package. The install
+references the checkout, so keep it where it is:
 
 ```bash
-pig package validate /home/azri/projects/personal/pig-herdr --json
-pig install /home/azri/projects/personal/pig-herdr/extensions/pig-herdr --validate-only --json
-pig install /home/azri/projects/personal/pig-herdr
+git clone https://github.com/az-iar/pig-herdr.git /path/to/pig-herdr
+pig package validate /path/to/pig-herdr --json
+pig install /path/to/pig-herdr/extensions/pig-herdr --validate-only --json
+pig install /path/to/pig-herdr
 ```
 
 Start a **new Pig process inside a Herdr pane**:
@@ -34,7 +36,7 @@ not automatic: this project's development and tests do not change user settings.
 To uninstall:
 
 ```bash
-pig remove /home/azri/projects/personal/pig-herdr
+pig remove /path/to/pig-herdr
 ```
 
 Use Herdr 0.9.2 or later for custom session restoration; older Herdr still gets
@@ -43,11 +45,12 @@ Go toolchain to build the extension; Pig stages its version-matched SDK.
 
 ## Try without installing
 
-Load the extension explicitly, and include that path in the restore base argv:
+Load the extension explicitly, and include that path in the restore base argv.
+Use the absolute path of your checkout: the JSON is not expanded by the shell.
 
 ```bash
-pig -e /home/azri/projects/personal/pig-herdr/extensions/pig-herdr \
-  --herdr-resume-args '["pig","-e","/home/azri/projects/personal/pig-herdr/extensions/pig-herdr"]'
+pig -e /path/to/pig-herdr/extensions/pig-herdr \
+  --herdr-resume-args '["pig","-e","/path/to/pig-herdr/extensions/pig-herdr"]'
 ```
 
 The flag is a **JSON array**, not shell text. It contains the executable and
@@ -57,8 +60,8 @@ model, and thinking options (the extension supplies those).
 For a Piglet, supply its selection too:
 
 ```bash
-pig --piglet review -e /home/azri/projects/personal/pig-herdr/extensions/pig-herdr \
-  --herdr-resume-args '["pig","--piglet","review","-e","/home/azri/projects/personal/pig-herdr/extensions/pig-herdr"]'
+pig --piglet review -e /path/to/pig-herdr/extensions/pig-herdr \
+  --herdr-resume-args '["pig","--piglet","review","-e","/path/to/pig-herdr/extensions/pig-herdr"]'
 ```
 
 Alternatively set `PIG_HERDR_RESUME_ARGS` to the same JSON before starting Pig.
@@ -146,3 +149,8 @@ cover those; the end-to-end run below has not been repeated):
 The isolated test server was stopped after verification. No existing Herdr
 workspace or session was modified. Windows, older Herdr releases, nested prompts,
 and Piglet Binary restoration have not been exercised end to end.
+
+## License
+
+[MIT](LICENSE). Code adapted from Pigpen keeps its own MIT notice in
+`THIRD_PARTY_NOTICES`.

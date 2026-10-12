@@ -2,6 +2,7 @@
   "name": "pig-herdr",
   "version": "0.1.0",
   "description": "Pig lifecycle state and session restoration for Herdr",
+  "license": "MIT",
   "pi": {
     "extensions": ["extensions/pig-herdr"]
   }
