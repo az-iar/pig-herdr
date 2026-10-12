@@ -37,7 +37,8 @@ To uninstall:
 pig remove /home/azri/projects/personal/pig-herdr
 ```
 
-Use Herdr 0.9.2 or later for custom session restoration. Pig needs a compatible
+Use Herdr 0.9.2 or later for custom session restoration; older Herdr still gets
+state reports. Pig needs a compatible
 Go toolchain to build the extension; Pig stages its version-matched SDK.
 
 ## Try without installing
@@ -79,28 +80,40 @@ Do not include secrets: Herdr persists the restore command locally.
 ## Behavior
 
 - Activates only with `HERDR_ENV=1`, `HERDR_BIN_PATH`, `HERDR_PANE_ID`, and
-  `HERDR_SOCKET_PATH` present.
+  `HERDR_SOCKET_PATH` present, and reports only from the interactive TUI. Print,
+  JSON and RPC runs inside a Herdr pane stay silent.
 - Uses Herdr's owning binary, not whichever `herdr` happens to be on `PATH`.
-- Reports `working` on `agent_start`, and `idle` on `agent_end`/`agent_settled`.
-- Reports `blocked` while Pig SDK UI prompts are open, restoring the underlying
-  state when they close. Built-in screens that do not emit these prompt events
-  (for example the model picker) remain idle.
+- Reports `working` on `agent_start`, and `idle` on `agent_settled` once Pig is
+  idle, so retries and compaction do not flicker to idle.
+- Reports `blocked` while Pig SDK UI prompts are open, with the prompt title as
+  the sidebar message, and counts overlapping prompts. Built-in screens that do
+  not emit these prompt events (for example the model picker) remain idle.
 - Refreshes restoration information on session, model, thinking, and message
   events. The session's exact file path handles non-default session directories.
 - Only reports a resume command once the session file exists. Unsaved sessions
   and `--no-session` conversations are tracked but cannot be restored.
 - Clears the previous session's restore command when switching session IDs.
-- Releases the pane on the session shutdown event. Extension transport shutdown
-  alone does not release it, preserving state during `/reload`.
+- Releases the pane only when Pig quits. Other session shutdowns (`/new`,
+  `/resume`, `/reload`) stop this reporter without releasing, so the successor's
+  report is never cleared by a late release.
 - Uses source `pig-herdr` and increasing timestamp-based sequence numbers.
-- Runs reports synchronously with a 400 ms CLI timeout and discards failures and
-  output. There are no background workers, HTTP calls, or transcript uploads.
+- Sends reports from a background queue, one at a time and in order, keeping only
+  the newest pending state, with a 3 s CLI timeout. Pig never waits on Herdr.
+  There are no HTTP calls or transcript uploads.
+- If Herdr rejects the restore command (Herdr before 0.9.2, or
+  `invalid_resume_argv`), resends the report without it and stops attaching one.
 
 Herdr's command restrictions apply: a plain executable name on `PATH`, no
 apostrophes or control characters in arguments, at most 64 arguments and 8 KiB.
 Invalid restore configuration disables restore reporting without disabling
-lifecycle reporting. Normal failures are intentionally silent; check
+lifecycle reporting. A failed Herdr call writes one line to the extension's
+stderr, and the same failure is not repeated until a call succeeds again. Check
 `herdr agent list` and `/herdr-status` when diagnosing integration issues.
+
+The reporting queue, restore fallback, prompt messages, shutdown handling and
+diagnostics are adapted from Pigpen's
+[herdr component](https://github.com/MichaelKinsy/pigpen/tree/main/components/herdr)
+(MIT, Michael Kinsy); see `THIRD_PARTY_NOTICES`.
 
 ## Development
 
@@ -117,7 +130,9 @@ language floor.
 
 ### Verification performed
 
-Tested with the installed Pig and Herdr 0.9.3 in an isolated named Herdr session:
+Tested with the installed Pig and Herdr 0.9.3 in an isolated named Herdr session,
+before the background queue and quit-only release were adopted (unit tests
+cover those; the end-to-end run below has not been repeated):
 
 - Package installation and normal extension discovery using an isolated Pig config root.
 - Pig discovery and `idle → working → idle` during a short model turn.
